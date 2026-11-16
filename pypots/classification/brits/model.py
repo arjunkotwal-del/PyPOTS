@@ -240,7 +240,7 @@ class BRITS(BaseNNClassifier):
         val_dataloader = None
         if val_set is not None:
             val_dataset = DatasetForBRITS(
-                train_set,
+                val_set,
                 return_X_ori=False,
                 return_y=True,
                 file_type=file_type,

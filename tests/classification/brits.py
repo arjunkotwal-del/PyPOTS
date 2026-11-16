@@ -7,10 +7,12 @@ Test cases for BRITS classification model.
 
 import os
 import unittest
+from unittest import mock
 
 import pytest
 
 from pypots.classification import BRITS
+from pypots.classification.brits import model as brits_model
 from pypots.nn.functional import calc_binary_classification_metrics
 from pypots.optim import Adam
 from pypots.utils.logging import logger
@@ -110,6 +112,21 @@ class TestBRITS(unittest.TestCase):
             f"Recall: {metrics['recall']}"
         )
         assert metrics["roc_auc"] >= 0.5, "ROC-AUC < 0.5"
+
+    @pytest.mark.xdist_group(name="classification-brits")
+    def test_5_fit_validates_on_val_set(self):
+        # the validation dataloader must be built from val_set, not from train_set
+        with mock.patch.object(
+            brits_model,
+            "DatasetForBRITS",
+            side_effect=brits_model.DatasetForBRITS,
+        ) as dataset_spy:
+            self.brits.fit(TRAIN_SET, VAL_SET)
+
+        used_sets = [call.args[0] for call in dataset_spy.call_args_list]
+        assert len(used_sets) == 2, f"expected 2 datasets to be built, got {len(used_sets)}"
+        assert used_sets[0] is TRAIN_SET, "the training dataset should be built from train_set"
+        assert used_sets[1] is VAL_SET, "the validation dataset should be built from val_set"
 
 
 if __name__ == "__main__":
